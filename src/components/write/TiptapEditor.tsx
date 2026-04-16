@@ -26,8 +26,7 @@ interface TiptapEditorProps {
 function parseInitialContent(content: string) {
   if (!content) return "";
   try {
-    JSON.parse(content);
-    return content;
+    return JSON.parse(content); // return object — TipTap content prop requires JSONContent, not a JSON string
   } catch {
     // Plain text
     return {
@@ -62,7 +61,7 @@ export function TiptapEditor({
       Image.configure({ inline: false }),
       Link.configure({ openOnClick: false }),
     ],
-    content: parseInitialContent(initialContent) as string,
+    content: parseInitialContent(initialContent),
     editorProps: {
       attributes: {
         class: cn(
@@ -88,7 +87,7 @@ export function TiptapEditor({
       editor.commands.clearContent();
     } else {
       try {
-        editor.commands.setContent(parsed as string);
+        editor.commands.setContent(parsed as Parameters<typeof editor.commands.setContent>[0]);
       } catch {
         editor.commands.clearContent();
       }

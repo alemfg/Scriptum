@@ -27,13 +27,14 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3010}:3010"
     environment:
       DATABASE_PROVIDER: postgresql
       DATABASE_URL: postgresql://${POSTGRES_USER:-scriptum}:${POSTGRES_PASSWORD:-scriptum_secret}@db:5432/scriptum
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3010}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
-      NEXT_PUBLIC_APP_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${NEXTAUTH_URL:-http://localhost:3010}
+      AUTH_TRUST_HOST: "true"
       MCP_ENABLED: ${MCP_ENABLED:-false}
     volumes:
       - uploads_data:/app/public/uploads

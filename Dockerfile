@@ -18,8 +18,9 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 FROM base AS deps
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json package-lock.json* .npmrc* ./
+# Skip postinstall (prisma generate) — schema not present yet; runs in builder
+RUN npm ci --legacy-peer-deps --ignore-scripts
 
 # ──────────────────────────────────────────────
 FROM base AS builder
@@ -31,7 +32,7 @@ COPY . .
 # Use the PostgreSQL schema for production builds
 RUN cp prisma/schema.postgresql.prisma prisma/schema.prisma
 
-# Generate Prisma client
+# Generate Prisma client (skipped in deps stage, run here with schema present)
 RUN npx prisma generate
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -54,15 +55,14 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy full node_modules so `prisma db push` has all transitive deps at runtime
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3010
 
-ENV PORT=3000
+ENV PORT=3010
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]

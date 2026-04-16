@@ -1,0 +1,44 @@
+Fastest option: copy source + Docker build on server
+On your local machine, create a clean archive (excludes node_modules, .next, SQLite dev database):
+
+cd /home/agiusti/Nextcloud/Projetos/Scriptum
+tar --exclude='node_modules' --exclude='.next' --exclude='prisma/dev.db' -czf /tmp/scriptum.tar.gz .
+
+Copy to the server:
+scp /tmp/scriptum.tar.gz user@your-server:/opt/scriptum.tar.gz
+
+On the server:
+mkdir /opt/scriptum
+cd /opt/scriptum
+tar -xzf /tmp/scriptum.tar.gz
+
+cp .env.example .env
+nano .env   # set the three required values below
+Minimum .env for production:
+
+
+NEXTAUTH_SECRET=$(openssl rand -base64 32)   # paste the output
+POSTGRES_PASSWORD=choose-a-strong-password
+NEXTAUTH_URL=http://your-server-ip:3000      # or https://your-domain.com
+
+Then build and start:
+docker compose up -d --build
+
+First build takes 3–5 minutes. The container auto-runs prisma db push before starting. Open http://your-server-ip:3000 and register the first account.
+
+What you need on the server
+Docker 24+ and Docker Compose v2+ — nothing else. Chromium, PostgreSQL, and Node are all inside the containers.
+If you have a domain + want HTTPS
+
+After the app is running:
+apt-get install certbot python3-certbot-nginx
+# configure Nginx to proxy :3000 (see INSTALL.md for the exact config)
+certbot --nginx -d your-domain.com
+
+Then update NEXTAUTH_URL=https://your-domain.com in .env and docker compose up -d.
+
+Future updates
+# on the server, after copying new source
+docker compose up -d --build
+
+Schema changes are applied automatically on startup via prisma db push.
