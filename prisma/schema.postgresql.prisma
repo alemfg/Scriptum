@@ -1,0 +1,378 @@
+// Scriptum - Prisma Schema
+// Supports PostgreSQL (primary), MySQL, SQLite (dev)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Change to "postgresql" or "mysql" for production. Set DATABASE_URL accordingly.
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          UserRole  @default(AUTHOR)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  books         Book[]
+  collections   Collection[]
+  aiSettings    AISettings?
+  projectAccess ProjectAccess[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum UserRole {
+  ADMIN
+  AUTHOR
+  EDITOR
+}
+
+// ─── AI SETTINGS ─────────────────────────────────────────────────────────────
+
+model AISettings {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  provider   AIProvider @default(OPENAI)
+  apiKey     String?   @db.Text
+  model      String?
+  baseUrl    String?   // for custom/Ollama
+  mcpEnabled Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum AIProvider {
+  OPENAI
+  CLAUDE
+  OLLAMA
+  CUSTOM
+}
+
+// ─── COLLECTIONS ─────────────────────────────────────────────────────────────
+
+model Collection {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?  @db.Text
+  coverImage  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books Book[]
+}
+
+// ─── BOOKS ───────────────────────────────────────────────────────────────────
+
+model Book {
+  id           String      @id @default(cuid())
+  userId       String
+  collectionId String?
+  title        String
+  subtitle     String?
+  author       String?
+  description  String?     @db.Text
+  genre        String?
+  language     String      @default("en")
+  status       BookStatus  @default(DRAFT)
+  mode         BookMode    @default(WRITE)
+  wordGoal     Int?
+  coverImage   String?
+  backImage    String?
+  spineImage   String?
+  spineWidth   Float?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collection    Collection?    @relation(fields: [collectionId], references: [id])
+  chapters      Chapter[]
+  characters    Character[]
+  worldbuilding WorldBuilding[]
+  scenes        Scene[]
+  formatSettings FormatSettings?
+  projectAccess ProjectAccess[]
+  backups       Backup[]
+  writingGoals  WritingGoal[]
+  writingSessions WritingSession[]
+
+  @@index([userId])
+}
+
+enum BookStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  PUBLISHED
+}
+
+enum BookMode {
+  WRITE
+  FORMAT
+}
+
+model ProjectAccess {
+  id        String      @id @default(cuid())
+  bookId    String
+  userId    String
+  role      ProjectRole @default(EDITOR)
+  createdAt DateTime    @default(now())
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, userId])
+}
+
+enum ProjectRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+// ─── CHAPTERS ────────────────────────────────────────────────────────────────
+
+model Chapter {
+  id          String      @id @default(cuid())
+  bookId      String
+  title       String
+  order       Int
+  type        ChapterType @default(CHAPTER)
+  content     String?     @db.Text  // JSON (TipTap doc)
+  notes       String?     @db.Text
+  wordCount   Int         @default(0)
+  isVisible   Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  book     Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  scenes   Scene[]
+  versions ChapterVersion[]
+
+  @@index([bookId, order])
+}
+
+enum ChapterType {
+  TITLE_PAGE
+  COPYRIGHT
+  DEDICATION
+  TOC
+  FOREWORD
+  PREFACE
+  CHAPTER
+  ABOUT_AUTHOR
+  ACKNOWLEDGEMENTS
+  ALSO_BY
+  CUSTOM
+}
+
+model ChapterVersion {
+  id        String   @id @default(cuid())
+  chapterId String
+  content   String   @db.Text
+  wordCount Int      @default(0)
+  createdAt DateTime @default(now())
+  label     String?
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([chapterId])
+}
+
+// ─── SCENES ──────────────────────────────────────────────────────────────────
+
+model Scene {
+  id        String   @id @default(cuid())
+  bookId    String
+  chapterId String?
+  title     String
+  order     Int
+  content   String?  @db.Text
+  notes     String?  @db.Text
+  wordCount Int      @default(0)
+  tags      String?  // comma-separated
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  book    Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id])
+
+  @@index([bookId])
+}
+
+// ─── CHARACTERS ──────────────────────────────────────────────────────────────
+
+model Character {
+  id            String   @id @default(cuid())
+  bookId        String
+  name          String
+  role          String?
+  description   String?  @db.Text
+  traits        String?  @db.Text // JSON array
+  relationships String?  @db.Text // JSON array
+  notes         String?  @db.Text
+  imageUrl      String?
+  aiExtracted   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+}
+
+// ─── WORLDBUILDING ───────────────────────────────────────────────────────────
+
+model WorldBuilding {
+  id          String            @id @default(cuid())
+  bookId      String
+  type        WorldBuildingType
+  title       String
+  content     String?           @db.Text
+  imageUrl    String?
+  aiExtracted Boolean           @default(false)
+  order       Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+}
+
+enum WorldBuildingType {
+  LOCATION
+  LORE
+  TIMELINE
+  RULE
+  OTHER
+}
+
+// ─── FORMAT SETTINGS ─────────────────────────────────────────────────────────
+
+model FormatSettings {
+  id String @id @default(cuid())
+  bookId String @unique
+
+  // KDP
+  trimSize         String  @default("6x9")
+  marginTop        Float   @default(0.75)
+  marginBottom     Float   @default(0.75)
+  marginInner      Float   @default(0.875)
+  marginOuter      Float   @default(0.5)
+  bleed            Boolean @default(false)
+  chapterStartRight Boolean @default(true)
+
+  // Typography
+  preset           String  @default("classic")
+  fontFamily       String  @default("Garamond")
+  fontSize         Float   @default(11)
+  lineSpacing      Float   @default(1.4)
+  paragraphSpacing Float   @default(0)
+  indentation      Float   @default(0.3)
+  justification    String  @default("justify")
+  dropCaps         Boolean @default(true)
+  widowControl     Boolean @default(true)
+
+  // Header/Footer
+  headerEnabled    Boolean @default(true)
+  footerEnabled    Boolean @default(true)
+  headerContent    String  @default("title")
+  footerContent    String  @default("pageNumber")
+
+  // Scene separator
+  sceneSeparator   String  @default("***")
+  sceneSeparatorSvg String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+// ─── WRITING GOALS & SESSIONS ─────────────────────────────────────────────────
+
+model WritingGoal {
+  id          String   @id @default(cuid())
+  bookId      String
+  dailyGoal   Int?
+  totalGoal   Int?
+  deadline    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+model WritingSession {
+  id        String   @id @default(cuid())
+  bookId    String
+  words     Int      @default(0)
+  duration  Int      @default(0) // seconds
+  date      DateTime @default(now())
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId, date])
+}
+
+// ─── BACKUPS ─────────────────────────────────────────────────────────────────
+
+model Backup {
+  id        String   @id @default(cuid())
+  bookId    String
+  filename  String
+  size      Int
+  createdAt DateTime @default(now())
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}

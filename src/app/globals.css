@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --primary: #1a1a2e;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #3b82f6;
+  --radius: 0.5rem;
+  --sidebar-width: 260px;
+}
+
+.dark {
+  --background: #0f0f13;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #7f1d1d;
+  --border: #27272a;
+  --input: #27272a;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* TipTap Editor */
+.tiptap { outline: none; min-height: 100%; }
+.tiptap p.is-editor-empty:first-child::before {
+  color: var(--muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.tiptap h1 { font-size: 1.8em; font-weight: 700; margin: 1.5em 0 0.5em; }
+.tiptap h2 { font-size: 1.4em; font-weight: 600; margin: 1.2em 0 0.4em; }
+.tiptap h3 { font-size: 1.2em; font-weight: 600; margin: 1em 0 0.3em; }
+.tiptap p { margin-bottom: 0.8em; line-height: 1.7; }
+.tiptap blockquote { border-left: 3px solid var(--border); padding-left: 1em; margin: 1em 0; color: var(--muted-foreground); font-style: italic; }
+.tiptap ul, .tiptap ol { padding-left: 1.5em; margin-bottom: 0.8em; }
+.tiptap li { margin-bottom: 0.3em; }
+.tiptap hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+.tiptap strong { font-weight: 700; }
+.tiptap em { font-style: italic; }
+.tiptap code { font-family: monospace; background: var(--muted); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+/* Focus mode */
+.focus-mode .sidebar { display: none !important; }
+.focus-mode .toolbar { opacity: 0; transition: opacity 0.3s; }
+.focus-mode:hover .toolbar { opacity: 1; }

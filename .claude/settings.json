@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/agiusti/.npm/_logs/**)",
+      "Bash(npx prisma:*)",
+      "Bash(./node_modules/.bin/prisma generate:*)",
+      "Bash(grep -E \"^prisma$|^@prisma$\")",
+      "Bash(node /home/agiusti/Nextcloud/Projetos/Scriptum/node_modules/prisma/build/index.js generate --schema=/home/agiusti/Nextcloud/Projetos/Scriptum/prisma/schema.prisma)"
+    ]
+  }
+}

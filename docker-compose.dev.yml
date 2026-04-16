@@ -1,0 +1,21 @@
+version: "3.9"
+
+# Development override — uses SQLite, mounts source code
+services:
+  app:
+    build:
+      context: .
+      target: deps
+    command: sh -c "npx prisma db push && npm run dev"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      DATABASE_PROVIDER: sqlite
+      DATABASE_URL: file:./dev.db
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: dev-secret-change-me
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
