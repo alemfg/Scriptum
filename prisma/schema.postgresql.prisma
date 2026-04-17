@@ -126,10 +126,13 @@ model Book {
   status       BookStatus  @default(DRAFT)
   mode         BookMode    @default(WRITE)
   wordGoal     Int?
-  coverImage   String?
-  backImage    String?
-  spineImage   String?
-  spineWidth   Float?
+  coverImage      String?
+  backImage       String?
+  spineImage      String?
+  spineWidth      Float?
+  isbnPaperback   String?
+  isbnHardcover   String?
+  isbnEbook       String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 

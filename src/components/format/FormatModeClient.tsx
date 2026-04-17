@@ -1,9 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   PenLine, Download, CheckCircle, Type, BookOpen,
-  Layout, Sparkles, Eye, Monitor, ZoomIn, ZoomOut,
+  Layout, Sparkles, Eye, Monitor, ZoomIn, ZoomOut, Copy, ChevronDown,
 } from "lucide-react";
 import { cn, estimatePageCount, calculateSpineWidth } from "@/lib/utils";
 import type { FormatSettings, Chapter, Scene } from "@/types";
@@ -19,6 +19,7 @@ interface FormatBook {
   title: string;
   author: string | null;
   coverImage: string | null;
+  collectionId: string | null;
   chapters: (Chapter & { scenes: Scene[] })[];
   formatSettings: FormatSettings | null;
 }
@@ -54,6 +55,93 @@ const TABS = [
   { id: "export", label: "Export", icon: Download },
   { id: "validate", label: "Validate", icon: CheckCircle },
 ];
+
+function CopyFormatButton({ bookId, collectionId }: { bookId: string; collectionId?: string | null }) {
+  const [open, setOpen] = useState(false);
+  const [books, setBooks] = useState<{ id: string; title: string }[]>([]);
+  const [copying, setCopying] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const openMenu = async () => {
+    if (!open && books.length === 0) {
+      const res = await fetch("/api/books");
+      const data = await res.json();
+      setBooks((Array.isArray(data) ? data : data.books ?? []).filter((b: { id: string }) => b.id !== bookId));
+    }
+    setOpen((v) => !v);
+    setResult(null);
+  };
+
+  const copy = async (targetBookId?: string, toCollection?: boolean) => {
+    setCopying(true);
+    setResult(null);
+    try {
+      const body = toCollection ? { collectionId } : { targetBookId };
+      const res = await fetch(`/api/books/${bookId}/format/copy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      setResult(res.ok ? `Copied to ${data.copied} book${data.copied !== 1 ? "s" : ""}` : (data.error ?? "Error"));
+    } finally {
+      setCopying(false);
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={openMenu}
+        title="Copy format settings to another book"
+        className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors"
+      >
+        <Copy className="h-3.5 w-3.5" />
+        <span>Copy format</span>
+        <ChevronDown className="h-3 w-3" />
+      </button>
+      {result && (
+        <span className="absolute -bottom-5 left-0 text-xs text-green-600 whitespace-nowrap">{result}</span>
+      )}
+      {open && (
+        <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-[var(--border)] rounded-xl shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+          {collectionId && (
+            <button
+              onClick={() => copy(undefined, true)}
+              disabled={copying}
+              className="w-full px-3 py-2.5 text-left text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border-b border-[var(--border)] transition-colors disabled:opacity-50"
+            >
+              Apply to entire collection
+            </button>
+          )}
+          {books.length === 0 && (
+            <p className="px-3 py-2 text-xs text-[var(--muted-foreground)]">No other books</p>
+          )}
+          {books.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => copy(b.id)}
+              disabled={copying}
+              className="w-full px-3 py-2 text-left text-xs text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors disabled:opacity-50 truncate"
+            >
+              {b.title}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function FormatModeClient({ book }: { book: FormatBook }) {
   const [settings, setSettings] = useState<Partial<FormatSettings>>({
@@ -120,6 +208,7 @@ export function FormatModeClient({ book }: { book: FormatBook }) {
               {saving ? "Saving…" : saved ? "Saved" : "Unsaved"}
             </span>
           </div>
+          <CopyFormatButton bookId={book.id} collectionId={book.collectionId} />
           <h2 className="text-sm font-semibold text-[var(--foreground)] truncate">{book.title}</h2>
           <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)] mt-1">
             <span>~{estimatedPages} pages</span>

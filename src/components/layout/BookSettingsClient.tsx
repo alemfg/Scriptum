@@ -30,6 +30,9 @@ export function BookSettingsClient({ book: initialBook, collections }: Props) {
     status: initialBook.status,
     wordGoal: initialBook.wordGoal?.toString() ?? "",
     collectionId: initialBook.collection?.id ?? "",
+    isbnPaperback: (initialBook as Book & { isbnPaperback?: string | null }).isbnPaperback ?? "",
+    isbnHardcover: (initialBook as Book & { isbnHardcover?: string | null }).isbnHardcover ?? "",
+    isbnEbook: (initialBook as Book & { isbnEbook?: string | null }).isbnEbook ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -87,6 +90,9 @@ export function BookSettingsClient({ book: initialBook, collections }: Props) {
           ...form,
           wordGoal: form.wordGoal ? parseInt(form.wordGoal) : null,
           collectionId: form.collectionId || null,
+          isbnPaperback: form.isbnPaperback || null,
+          isbnHardcover: form.isbnHardcover || null,
+          isbnEbook: form.isbnEbook || null,
         }),
       });
       if (!res.ok) throw new Error("Save failed");
@@ -157,6 +163,31 @@ export function BookSettingsClient({ book: initialBook, collections }: Props) {
           <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Word Goal</label>
           <input type="number" value={form.wordGoal} onChange={(e) => setForm({ ...form, wordGoal: e.target.value })}
             placeholder="e.g. 80000" className="w-full px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]" />
+        </div>
+
+        <div className="border border-[var(--border)] rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-[var(--foreground)] mb-1">ISBNs</h3>
+          <p className="text-xs text-[var(--muted-foreground)] mb-3">Used in export placeholders: <code className="font-mono">[isbn_paperback]</code>, <code className="font-mono">[isbn_ebook]</code></p>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Paperback ISBN-13</label>
+              <input type="text" value={form.isbnPaperback} onChange={(e) => setForm({ ...form, isbnPaperback: e.target.value })}
+                placeholder="978-0-000-00000-0" maxLength={17}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--ring)]" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Hardcover ISBN-13</label>
+              <input type="text" value={form.isbnHardcover} onChange={(e) => setForm({ ...form, isbnHardcover: e.target.value })}
+                placeholder="978-0-000-00000-0" maxLength={17}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--ring)]" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Ebook ISBN-13</label>
+              <input type="text" value={form.isbnEbook} onChange={(e) => setForm({ ...form, isbnEbook: e.target.value })}
+                placeholder="978-0-000-00000-0" maxLength={17}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--ring)]" />
+            </div>
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-500">{error}</p>}

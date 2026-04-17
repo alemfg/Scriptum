@@ -1,4 +1,5 @@
 import type { BookFull, FormatSettings } from "@/types";
+import { generateBarcodeSvg } from "@/lib/barcode";
 
 function escapeHtml(str: string): string {
   return str
@@ -22,6 +23,11 @@ const NUMBER_WORDS = ["","One","Two","Three","Four","Five","Six","Seven","Eight"
 
 function substitutePlaceholders(html: string, book: BookFull, chapterIndex: number, chapterTitle: string): string {
   const chNum = chapterIndex + 1;
+  const b = book as BookFull & { isbnPaperback?: string | null; isbnHardcover?: string | null; isbnEbook?: string | null };
+  const isbnPb = b.isbnPaperback ?? "";
+  const isbnHc = b.isbnHardcover ?? "";
+  const isbnEb = b.isbnEbook ?? "";
+  const barcodePb = isbnPb ? generateBarcodeSvg(isbnPb) : "";
   const map: Record<string, string> = {
     "[book_title]":            escapeHtml(book.title ?? ""),
     "[author_name]":           escapeHtml(book.author ?? ""),
@@ -32,7 +38,10 @@ function substitutePlaceholders(html: string, book: BookFull, chapterIndex: numb
     "[chapter_title]":         escapeHtml(chapterTitle),
     "[chapter_number]":        String(chNum),
     "[chapter_number_words]":  chNum <= 20 ? NUMBER_WORDS[chNum] : String(chNum),
-    "[isbn_paperback]": "", "[isbn_hardcover]": "", "[isbn_ebook]": "",
+    "[isbn_paperback]":        escapeHtml(isbnPb),
+    "[isbn_hardcover]":        escapeHtml(isbnHc),
+    "[isbn_ebook]":            escapeHtml(isbnEb),
+    "[isbn_barcode]":          barcodePb,
   };
   return html.replace(/\[[a-zA-Z_][a-zA-Z0-9_]*(?::[^\]]+)?]/g, (match) => {
     if (match in map) return map[match];
