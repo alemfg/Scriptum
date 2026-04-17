@@ -44,7 +44,7 @@ export function DashboardShell({
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--background)]">
       {/* Sidebar */}
-      <aside className="sidebar w-[var(--sidebar-width)] flex-shrink-0 border-r border-[var(--border)] flex flex-col bg-[var(--card)]">
+      <aside className="sidebar w-[var(--sidebar-width)] flex-shrink-0 border-r border-[var(--border)] flex flex-col bg-[var(--sidebar-bg)]">
         {/* Logo */}
         <div className="flex items-center gap-2 px-5 py-5 border-b border-[var(--border)]">
           <PenLine className="h-5 w-5 text-[var(--primary)]" />
@@ -65,8 +65,8 @@ export function DashboardShell({
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   active
-                    ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                    : "text-[var(--muted-foreground)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-[var(--muted-foreground)] hover:bg-white/60 hover:text-[var(--foreground)]"
                 )}
               >
                 <Icon className="h-4 w-4" />

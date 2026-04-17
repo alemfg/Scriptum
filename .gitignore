@@ -49,3 +49,6 @@ public/uploads/
 
 # env (keep .env.example, ignore .env)
 !.env.example
+
+# Claude
+.claude*

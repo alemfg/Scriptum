@@ -18,6 +18,7 @@ export default function NewBookPage() {
     language: "en",
     wordGoal: "",
   });
+  const [fullTemplate, setFullTemplate] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,6 +31,7 @@ export default function NewBookPage() {
         body: JSON.stringify({
           ...form,
           wordGoal: form.wordGoal ? parseInt(form.wordGoal) : null,
+          template: fullTemplate ? "full" : "minimal",
         }),
       });
       const data = await res.json();
@@ -127,6 +129,25 @@ export default function NewBookPage() {
             placeholder="e.g. 80000"
             min="0"
           />
+        </div>
+
+        {/* Template option */}
+        <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--muted)]">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={fullTemplate}
+              onChange={(e) => setFullTemplate(e.target.checked)}
+              className="mt-0.5 accent-indigo-600"
+            />
+            <div>
+              <p className="text-sm font-medium text-[var(--foreground)]">Load full book template</p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                Pre-creates: Title Page, Copyright, Dedication, Table of Contents, Chapter 1, About the Author, Acknowledgements.
+                Without this, only a Title Page and Chapter 1 are created.
+              </p>
+            </div>
+          </label>
         </div>
 
         {error && <p className="text-sm text-red-500">{error}</p>}

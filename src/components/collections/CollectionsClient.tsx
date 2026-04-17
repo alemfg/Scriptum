@@ -138,15 +138,15 @@ function CollectionCard({
           </button>
         </div>
       ) : (
-        availableBooks.length > 0 && (
-          <button
-            onClick={() => setAdding(true)}
-            className="flex items-center gap-1 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors mt-1"
-          >
-            <Plus className="h-3 w-3" />
-            Add book
-          </button>
-        )
+        <button
+          onClick={() => setAdding(true)}
+          disabled={availableBooks.length === 0}
+          className="flex items-center gap-1 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors mt-1 disabled:opacity-40 disabled:cursor-default"
+          title={availableBooks.length === 0 ? "All your books are already in this collection" : undefined}
+        >
+          <Plus className="h-3 w-3" />
+          Add book
+        </button>
       )}
     </div>
   );

@@ -5,7 +5,8 @@ import {
   PenLine, Layout, Plus, Moon, Sun, Maximize2, Minimize2,
   GripVertical, ChevronRight, ChevronDown, Trash2,
   Target, FileText, BookOpen, Sparkles, History, ListOrdered,
-  Settings, Archive,
+  Settings, Archive, BookMarked, Heart, Shield, List,
+  MessageSquare, User, Star, X,
 } from "lucide-react";
 import Link from "next/link";
 import { cn, formatWordCount, estimateReadingTime } from "@/lib/utils";
@@ -14,6 +15,53 @@ import { AIPanel } from "./AIPanel";
 import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { useBookStore } from "@/store/bookStore";
 import type { Chapter, Scene } from "@/types";
+
+// ── Page type configuration ───────────────────────────────────────────────────
+const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; dot: string }> = {
+  TITLE_PAGE:      { label: "Title Page",        icon: BookOpen,      color: "text-slate-500",  dot: "bg-slate-400"   },
+  COPYRIGHT:       { label: "Copyright",          icon: Shield,        color: "text-slate-500",  dot: "bg-slate-400"   },
+  DEDICATION:      { label: "Dedication",         icon: Heart,         color: "text-pink-500",   dot: "bg-pink-400"    },
+  TOC:             { label: "Contents",           icon: List,          color: "text-indigo-500", dot: "bg-indigo-400"  },
+  FOREWORD:        { label: "Foreword",           icon: MessageSquare, color: "text-sky-500",    dot: "bg-sky-400"     },
+  PREFACE:         { label: "Preface",            icon: MessageSquare, color: "text-sky-500",    dot: "bg-sky-400"     },
+  CHAPTER:         { label: "Chapter",            icon: BookMarked,    color: "text-indigo-600", dot: "bg-indigo-500"  },
+  ABOUT_AUTHOR:    { label: "About the Author",   icon: User,          color: "text-amber-500",  dot: "bg-amber-400"   },
+  ACKNOWLEDGEMENTS:{ label: "Acknowledgements",   icon: Star,          color: "text-amber-500",  dot: "bg-amber-400"   },
+  ALSO_BY:         { label: "Also By",            icon: BookOpen,      color: "text-amber-500",  dot: "bg-amber-400"   },
+  CUSTOM:          { label: "Custom",             icon: FileText,      color: "text-gray-500",   dot: "bg-gray-400"    },
+};
+
+const FRONT_MATTER = ["TITLE_PAGE", "COPYRIGHT", "DEDICATION", "TOC", "FOREWORD", "PREFACE"];
+const BACK_MATTER  = ["ABOUT_AUTHOR", "ACKNOWLEDGEMENTS", "ALSO_BY", "CUSTOM"];
+
+const ADD_PAGE_GROUPS = [
+  {
+    label: "Front Matter",
+    items: [
+      { type: "TITLE_PAGE",  title: "Title Page"          },
+      { type: "COPYRIGHT",   title: "Copyright"           },
+      { type: "DEDICATION",  title: "Dedication"          },
+      { type: "TOC",         title: "Table of Contents"   },
+      { type: "FOREWORD",    title: "Foreword"            },
+      { type: "PREFACE",     title: "Preface"             },
+    ],
+  },
+  {
+    label: "Body",
+    items: [
+      { type: "CHAPTER",     title: "Chapter"             },
+    ],
+  },
+  {
+    label: "Back Matter",
+    items: [
+      { type: "ABOUT_AUTHOR",     title: "About the Author"   },
+      { type: "ACKNOWLEDGEMENTS", title: "Acknowledgements"   },
+      { type: "ALSO_BY",          title: "Also By"            },
+      { type: "CUSTOM",           title: "Custom Page"        },
+    ],
+  },
+];
 
 interface BookWithChapters {
   id: string;
@@ -40,6 +88,7 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const [focusMode, setFocusMode] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const { theme, setTheme } = useBookStore();
   const darkMode = theme === "dark";
   const setDarkMode = (v: boolean) => setTheme(v ? "dark" : "light");
@@ -119,11 +168,16 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
     [selectedChapterId]
   );
 
-  const addChapter = async () => {
+  const addPage = async (type: string, baseTitle: string) => {
+    setShowAddMenu(false);
+    const countOfType = book.chapters.filter(c => c.type === type).length;
+    const title = type === "CHAPTER"
+      ? `Chapter ${countOfType + 1}`
+      : countOfType > 0 ? `${baseTitle} ${countOfType + 1}` : baseTitle;
     const res = await fetch(`/api/books/${book.id}/chapters`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: `Chapter ${book.chapters.filter(c => c.type === "CHAPTER").length + 1}` }),
+      body: JSON.stringify({ title, type }),
     });
     if (res.ok) {
       const chapter = await res.json();
@@ -198,7 +252,7 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
     <div className={cn("flex h-screen overflow-hidden", darkMode ? "dark" : "")} style={{ background: "var(--background)" }}>
       {/* Sidebar */}
       {!focusMode && (
-        <aside className="sidebar w-64 border-r border-[var(--border)] flex flex-col bg-[var(--card)] flex-shrink-0">
+        <aside className="sidebar w-64 border-r border-[var(--border)] flex flex-col bg-[var(--sidebar-bg)] flex-shrink-0">
           {/* Mode Toggle Header */}
           <div className="px-3 py-3 border-b border-[var(--border)] flex items-center gap-2">
             <Link href="/books" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">
@@ -243,59 +297,87 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
               <Droppable droppableId="chapters">
                 {(provided) => (
                   <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-0.5">
-                    {book.chapters.map((chapter, idx) => (
-                      <Draggable key={chapter.id} draggableId={chapter.id} index={idx}>
-                        {(drag) => (
-                          <div ref={drag.innerRef} {...drag.draggableProps}>
-                            <div
-                              className={cn(
-                                "flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer group transition-colors",
-                                selectedChapterId === chapter.id
-                                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                                  : "hover:bg-[var(--secondary)] text-[var(--foreground)]"
-                              )}
-                              onClick={() => setSelectedChapterId(chapter.id)}
-                            >
-                              <div {...drag.dragHandleProps} className="opacity-0 group-hover:opacity-40 cursor-grab">
-                                <GripVertical className="h-3 w-3" />
-                              </div>
-                              {chapter.scenes.length > 0 && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); toggleExpand(chapter.id); }}
-                                  className="opacity-60 hover:opacity-100"
-                                >
-                                  {expandedChapters.has(chapter.id)
-                                    ? <ChevronDown className="h-3 w-3" />
-                                    : <ChevronRight className="h-3 w-3" />}
-                                </button>
-                              )}
-                              <span className="flex-1 text-xs font-medium truncate">{chapter.title}</span>
-                              <span className={cn("text-xs opacity-60", selectedChapterId === chapter.id ? "text-[var(--primary-foreground)]" : "text-[var(--muted-foreground)]")}>
-                                {formatWordCount(chapter.wordCount)}
-                              </span>
-                              {!readOnly && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); deleteChapter(chapter.id); }}
-                                  className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              )}
-                            </div>
+                    {book.chapters.map((chapter, idx) => {
+                      const cfg = TYPE_CONFIG[chapter.type] ?? TYPE_CONFIG.CUSTOM;
+                      const TypeIcon = cfg.icon;
+                      const isFront = FRONT_MATTER.includes(chapter.type);
+                      const isBack  = BACK_MATTER.includes(chapter.type);
+                      const prevChapter = book.chapters[idx - 1];
+                      const showBodyDivider = idx > 0 && !isFront && !isBack && prevChapter && FRONT_MATTER.includes(prevChapter.type);
+                      const showBackDivider = isBack && prevChapter && !BACK_MATTER.includes(prevChapter.type);
 
-                            {/* Scenes */}
-                            {expandedChapters.has(chapter.id) && chapter.scenes.map((scene) => (
-                              <div key={scene.id} className="pl-6 mt-0.5">
-                                <div className="flex items-center gap-2 px-2 py-1 rounded-md text-xs text-[var(--muted-foreground)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)] cursor-pointer transition-colors">
-                                  <FileText className="h-3 w-3" />
-                                  <span className="truncate">{scene.title}</span>
+                      return (
+                        <div key={chapter.id}>
+                          {showBodyDivider && (
+                            <div className="px-2 py-1 mt-1">
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400">Body</span>
+                            </div>
+                          )}
+                          {showBackDivider && (
+                            <div className="px-2 py-1 mt-1">
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400">Back Matter</span>
+                            </div>
+                          )}
+                          {idx === 0 && isFront && (
+                            <div className="px-2 py-1">
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Front Matter</span>
+                            </div>
+                          )}
+                          <Draggable draggableId={chapter.id} index={idx}>
+                            {(drag) => (
+                              <div ref={drag.innerRef} {...drag.draggableProps}>
+                                <div
+                                  className={cn(
+                                    "flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer group transition-colors",
+                                    selectedChapterId === chapter.id
+                                      ? "bg-indigo-600 text-white shadow-sm"
+                                      : "hover:bg-white/70 text-[var(--foreground)]"
+                                  )}
+                                  onClick={() => setSelectedChapterId(chapter.id)}
+                                >
+                                  <div {...drag.dragHandleProps} className="opacity-0 group-hover:opacity-40 cursor-grab flex-shrink-0">
+                                    <GripVertical className="h-3 w-3" />
+                                  </div>
+                                  <TypeIcon className={cn("h-3 w-3 flex-shrink-0", selectedChapterId === chapter.id ? "text-white/80" : cfg.color)} />
+                                  {chapter.scenes.length > 0 && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); toggleExpand(chapter.id); }}
+                                      className="opacity-60 hover:opacity-100 flex-shrink-0"
+                                    >
+                                      {expandedChapters.has(chapter.id)
+                                        ? <ChevronDown className="h-3 w-3" />
+                                        : <ChevronRight className="h-3 w-3" />}
+                                    </button>
+                                  )}
+                                  <span className="flex-1 text-xs font-medium truncate">{chapter.title}</span>
+                                  <span className={cn("text-xs opacity-60 flex-shrink-0", selectedChapterId === chapter.id ? "text-white/70" : "text-[var(--muted-foreground)]")}>
+                                    {chapter.wordCount > 0 ? formatWordCount(chapter.wordCount) : ""}
+                                  </span>
+                                  {!readOnly && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); deleteChapter(chapter.id); }}
+                                      className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity flex-shrink-0"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
                                 </div>
+
+                                {/* Scenes nested under chapter */}
+                                {expandedChapters.has(chapter.id) && chapter.scenes.map((scene) => (
+                                  <div key={scene.id} className="pl-7 mt-0.5">
+                                    <div className="flex items-center gap-2 px-2 py-1 rounded-md text-xs text-[var(--muted-foreground)] hover:bg-white/60 hover:text-[var(--foreground)] cursor-pointer transition-colors">
+                                      <div className="h-1.5 w-1.5 rounded-full bg-teal-400 flex-shrink-0" />
+                                      <span className="truncate">{scene.title}</span>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
+                            )}
+                          </Draggable>
+                        </div>
+                      );
+                    })}
                     {provided.placeholder}
                   </div>
                 )}
@@ -303,16 +385,49 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
             </DragDropContext>
           </div>
 
-          {/* Add chapter */}
+          {/* Add page — dropdown with all types */}
           {!readOnly && (
-            <div className="p-3 border-t border-[var(--border)]">
+            <div className="p-3 border-t border-[var(--border)] relative">
               <button
-                onClick={addChapter}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--muted-foreground)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)] transition-colors"
+                onClick={() => setShowAddMenu((v) => !v)}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--muted-foreground)] hover:bg-white/70 hover:text-[var(--foreground)] transition-colors"
               >
                 <Plus className="h-4 w-4" />
-                Add Chapter
+                Add Page
+                <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", showAddMenu && "rotate-180")} />
               </button>
+
+              {showAddMenu && (
+                <div className="absolute bottom-full left-3 right-3 mb-1 bg-white border border-[var(--border)] rounded-xl shadow-lg overflow-hidden z-50">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)]">
+                    <span className="text-xs font-semibold text-[var(--foreground)]">Add Page</span>
+                    <button onClick={() => setShowAddMenu(false)} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {ADD_PAGE_GROUPS.map((group) => (
+                    <div key={group.label}>
+                      <div className="px-3 py-1.5 bg-[var(--muted)]">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">{group.label}</span>
+                      </div>
+                      {group.items.map((item) => {
+                        const cfg = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.CUSTOM;
+                        const Icon = cfg.icon;
+                        return (
+                          <button
+                            key={item.type}
+                            onClick={() => addPage(item.type, item.title)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors text-left"
+                          >
+                            <Icon className={cn("h-4 w-4 flex-shrink-0", cfg.color)} />
+                            {item.title}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </aside>

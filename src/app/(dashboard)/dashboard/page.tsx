@@ -2,13 +2,13 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { formatWordCount } from "@/lib/utils";
-import { BookOpen, PenLine, Plus, TrendingUp } from "lucide-react";
+import { BookOpen, PenLine, Plus, TrendingUp, Library } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await auth();
   const userId = session!.user.id;
 
-  const [books, recentSessions] = await Promise.all([
+  const [books, recentSessions, collections] = await Promise.all([
     db.book.findMany({
       where: { userId },
       include: { chapters: { select: { wordCount: true } } },
@@ -19,6 +19,12 @@ export default async function DashboardPage() {
       where: { book: { userId } },
       orderBy: { date: "desc" },
       take: 7,
+    }),
+    db.collection.findMany({
+      where: { userId },
+      include: { books: { select: { id: true, title: true } } },
+      orderBy: { updatedAt: "desc" },
+      take: 4,
     }),
   ]);
 
@@ -39,26 +45,26 @@ export default async function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--card)]">
+        <div className="p-5 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white">
           <div className="flex items-center gap-2 mb-2">
-            <BookOpen className="h-4 w-4 text-[var(--muted-foreground)]" />
-            <span className="text-sm text-[var(--muted-foreground)]">Total Books</span>
+            <BookOpen className="h-4 w-4 text-indigo-500" />
+            <span className="text-sm text-indigo-700">Total Books</span>
           </div>
-          <p className="text-3xl font-bold text-[var(--foreground)]">{books.length}</p>
+          <p className="text-3xl font-bold text-indigo-900">{books.length}</p>
         </div>
-        <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--card)]">
+        <div className="p-5 rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white">
           <div className="flex items-center gap-2 mb-2">
-            <PenLine className="h-4 w-4 text-[var(--muted-foreground)]" />
-            <span className="text-sm text-[var(--muted-foreground)]">Total Words</span>
+            <PenLine className="h-4 w-4 text-violet-500" />
+            <span className="text-sm text-violet-700">Total Words</span>
           </div>
-          <p className="text-3xl font-bold text-[var(--foreground)]">{formatWordCount(totalWords)}</p>
+          <p className="text-3xl font-bold text-violet-900">{formatWordCount(totalWords)}</p>
         </div>
-        <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--card)]">
+        <div className="p-5 rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-4 w-4 text-[var(--muted-foreground)]" />
-            <span className="text-sm text-[var(--muted-foreground)]">Last 7 Sessions</span>
+            <TrendingUp className="h-4 w-4 text-amber-500" />
+            <span className="text-sm text-amber-700">Last 7 Sessions</span>
           </div>
-          <p className="text-3xl font-bold text-[var(--foreground)]">{formatWordCount(sessionWords)}</p>
+          <p className="text-3xl font-bold text-amber-900">{formatWordCount(sessionWords)}</p>
         </div>
       </div>
 
@@ -124,6 +130,38 @@ export default async function DashboardPage() {
               </Link>
             );
           })}
+        </div>
+      )}
+      {/* Collections */}
+      {collections.length > 0 && (
+        <div className="mt-10">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">Collections</h2>
+            <Link href="/collections" className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">
+              View all
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {collections.map((col) => (
+              <Link
+                key={col.id}
+                href="/collections"
+                className="p-4 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-[var(--ring)] transition-colors group"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-8 w-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                    <Library className="h-4 w-4 text-violet-600" />
+                  </div>
+                  <h3 className="font-medium text-sm text-[var(--foreground)] truncate group-hover:text-[var(--ring)] transition-colors">
+                    {col.title}
+                  </h3>
+                </div>
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  {col.books.length} book{col.books.length !== 1 ? "s" : ""}
+                </p>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>

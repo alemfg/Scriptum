@@ -183,7 +183,19 @@ function splitIntoChapters(
       if (part.trim().length < 50) continue;
       const titleMatch = part.match(/^([^<]+)<\/h[1-3]>/i);
       const title = titleMatch ? titleMatch[1].trim() : `Chapter ${order + 1}`;
-      const body = part.replace(/^[^<]+<\/h[1-3]>/i, "").replace(/<[^>]+>/g, " ").trim();
+      // Preserve paragraph structure before stripping tags
+      const body = part
+        .replace(/^[^<]+<\/h[1-3]>/i, "")
+        .replace(/<\/p>/gi, "\n\n")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .trim();
       if (body.length > 50) {
         chapters.push({ title, content: body, order: order++ });
       }

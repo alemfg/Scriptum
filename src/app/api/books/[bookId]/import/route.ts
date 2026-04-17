@@ -51,10 +51,17 @@ export async function POST(
           type: "CHAPTER",
           content: JSON.stringify({
             type: "doc",
-            content: ch.content.split("\n\n").filter(Boolean).map((para) => ({
-              type: "paragraph",
-              content: [{ type: "text", text: para }],
-            })),
+            content: (() => {
+              const text = ch.content;
+              // Use double-newline for paragraph breaks if present; else single newline
+              const parts = text.includes("\n\n")
+                ? text.split(/\n{2,}/).map((p) => p.replace(/\n/g, " ").trim())
+                : text.split("\n").map((p) => p.trim());
+              return parts.filter(Boolean).map((para) => ({
+                type: "paragraph",
+                content: [{ type: "text", text: para }],
+              }));
+            })(),
           }),
           wordCount: ch.content.split(/\s+/).filter(Boolean).length,
         },
