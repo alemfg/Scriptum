@@ -23,10 +23,9 @@ const NUMBER_WORDS = ["","One","Two","Three","Four","Five","Six","Seven","Eight"
 
 function substitutePlaceholders(html: string, book: BookFull, chapterIndex: number, chapterTitle: string): string {
   const chNum = chapterIndex + 1;
-  const b = book as BookFull & { isbnPaperback?: string | null; isbnHardcover?: string | null; isbnEbook?: string | null };
-  const isbnPb = b.isbnPaperback ?? "";
-  const isbnHc = b.isbnHardcover ?? "";
-  const isbnEb = b.isbnEbook ?? "";
+  const isbnPb = book.isbns?.find((e) => e.type === "PAPERBACK")?.isbn ?? "";
+  const isbnHc = book.isbns?.find((e) => e.type === "HARDCOVER")?.isbn ?? "";
+  const isbnEb = book.isbns?.find((e) => e.type === "EBOOK")?.isbn ?? "";
   const barcodePb = isbnPb ? generateBarcodeSvg(isbnPb) : "";
   const map: Record<string, string> = {
     "[book_title]":            escapeHtml(book.title ?? ""),

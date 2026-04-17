@@ -38,6 +38,7 @@ export async function POST(
       worldbuilding: true,
       scenes: { orderBy: { order: "asc" } },
       formatSettings: true,
+      isbns: true,
     },
   });
 

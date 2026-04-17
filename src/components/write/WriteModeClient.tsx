@@ -95,6 +95,8 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
   const [savingStatus, setSavingStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [showHistory, setShowHistory] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const [sessionWords, setSessionWords] = useState(0);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const sessionStartWordsRef = useRef(initialBook.chapters.reduce((s, c) => s + c.wordCount, 0));
@@ -262,6 +264,27 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
     });
   };
 
+  const startRename = (e: React.MouseEvent, chapter: { id: string; title: string }) => {
+    e.stopPropagation();
+    setRenamingId(chapter.id);
+    setRenameValue(chapter.title);
+  };
+
+  const commitRename = async (chapterId: string) => {
+    const trimmed = renameValue.trim();
+    setRenamingId(null);
+    if (!trimmed) return;
+    setBook((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((ch) => ch.id === chapterId ? { ...ch, title: trimmed } : ch),
+    }));
+    await fetch(`/api/chapters/${chapterId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: trimmed }),
+    });
+  };
+
   return (
     <div className={cn("flex h-screen overflow-hidden", darkMode ? "dark" : "")} style={{ background: "var(--background)" }}>
       {/* Sidebar */}
@@ -364,7 +387,29 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
                                         : <ChevronRight className="h-3 w-3" />}
                                     </button>
                                   )}
-                                  <span className="flex-1 text-xs font-medium truncate">{chapter.title}</span>
+                                  {renamingId === chapter.id ? (
+                                    <input
+                                      autoFocus
+                                      value={renameValue}
+                                      onChange={(e) => setRenameValue(e.target.value)}
+                                      onBlur={() => commitRename(chapter.id)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") commitRename(chapter.id);
+                                        if (e.key === "Escape") setRenamingId(null);
+                                        e.stopPropagation();
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex-1 text-xs font-medium bg-white/90 text-gray-900 border border-indigo-300 rounded px-1 py-0 outline-none min-w-0"
+                                    />
+                                  ) : (
+                                    <span
+                                      className="flex-1 text-xs font-medium truncate cursor-text"
+                                      title={chapter.title}
+                                      onDoubleClick={(e) => !readOnly && startRename(e, chapter)}
+                                    >
+                                      {chapter.title}
+                                    </span>
+                                  )}
                                   <span className={cn("text-xs opacity-60 flex-shrink-0", selectedChapterId === chapter.id ? "text-white/70" : "text-[var(--muted-foreground)]")}>
                                     {chapter.wordCount > 0 ? formatWordCount(chapter.wordCount) : ""}
                                   </span>
@@ -394,7 +439,7 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
                                   <div key={scene.id} className="pl-7 mt-0.5">
                                     <div className="flex items-center gap-2 px-2 py-1 rounded-md text-xs text-[var(--muted-foreground)] hover:bg-white/60 hover:text-[var(--foreground)] cursor-pointer transition-colors">
                                       <div className="h-1.5 w-1.5 rounded-full bg-teal-400 flex-shrink-0" />
-                                      <span className="truncate">{scene.title}</span>
+                                      <span className="truncate" title={scene.title}>{scene.title}</span>
                                     </div>
                                   </div>
                                 ))}

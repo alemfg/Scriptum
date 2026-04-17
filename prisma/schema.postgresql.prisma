@@ -30,6 +30,7 @@ model User {
   collections   Collection[]
   aiSettings    AISettings?
   projectAccess ProjectAccess[]
+  isbns         IsbnEntry[]
 }
 
 model Account {
@@ -109,6 +110,7 @@ model Collection {
 
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   books Book[]
+  isbns IsbnEntry[]
 }
 
 // ─── BOOKS ───────────────────────────────────────────────────────────────────
@@ -130,9 +132,6 @@ model Book {
   backImage       String?
   spineImage      String?
   spineWidth      Float?
-  isbnPaperback   String?
-  isbnHardcover   String?
-  isbnEbook       String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -147,6 +146,7 @@ model Book {
   backups       Backup[]
   writingGoals  WritingGoal[]
   writingSessions WritingSession[]
+  isbns         IsbnEntry[]
 
   @@index([userId])
 }
@@ -378,4 +378,32 @@ model Backup {
   createdAt DateTime @default(now())
 
   book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+// ─── ISBN POOL ────────────────────────────────────────────────────────────────
+
+model IsbnEntry {
+  id           String    @id @default(cuid())
+  userId       String
+  isbn         String
+  type         IsbnType  @default(PAPERBACK)
+  label        String?
+  collectionId String?
+  bookId       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collection Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  book       Book?       @relation(fields: [bookId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([collectionId])
+  @@index([bookId])
+}
+
+enum IsbnType {
+  PAPERBACK
+  HARDCOVER
+  EBOOK
 }

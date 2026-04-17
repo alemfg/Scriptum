@@ -69,9 +69,6 @@ export async function PATCH(
       spineImage: body.spineImage,
       spineWidth: body.spineWidth,
       language: body.language,
-      isbnPaperback: "isbnPaperback" in body ? body.isbnPaperback : undefined,
-      isbnHardcover: "isbnHardcover" in body ? body.isbnHardcover : undefined,
-      isbnEbook: "isbnEbook" in body ? body.isbnEbook : undefined,
       collection: "collectionId" in body
         ? body.collectionId
           ? { connect: { id: body.collectionId } }

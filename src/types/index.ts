@@ -9,12 +9,14 @@ import type {
   Collection,
   Backup,
   AISettings,
+  IsbnEntry,
   UserRole,
   BookStatus,
   BookMode,
   ChapterType,
   WorldBuildingType,
   AIProvider,
+  IsbnType,
 } from "@prisma/client";
 
 export type {
@@ -28,12 +30,14 @@ export type {
   Collection,
   Backup,
   AISettings,
+  IsbnEntry,
   UserRole,
   BookStatus,
   BookMode,
   ChapterType,
   WorldBuildingType,
   AIProvider,
+  IsbnType,
 };
 
 export type BookWithChapters = Book & {
@@ -46,6 +50,7 @@ export type BookFull = Book & {
   worldbuilding: WorldBuilding[];
   scenes: Scene[];
   formatSettings: FormatSettings | null;
+  isbns: IsbnEntry[];
 };
 
 export type TrimSize =

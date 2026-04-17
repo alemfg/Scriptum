@@ -32,10 +32,9 @@ function substitutePlaceholders(
 ): string {
   const year = new Date().getFullYear().toString();
   const chNum = chapterIndex + 1;
-  const b = book as BookFull & { isbnPaperback?: string | null; isbnHardcover?: string | null; isbnEbook?: string | null };
-  const isbnPb = b.isbnPaperback ?? "";
-  const isbnHc = b.isbnHardcover ?? "";
-  const isbnEb = b.isbnEbook ?? "";
+  const isbnPb = book.isbns?.find((e) => e.type === "PAPERBACK")?.isbn ?? "";
+  const isbnHc = book.isbns?.find((e) => e.type === "HARDCOVER")?.isbn ?? "";
+  const isbnEb = book.isbns?.find((e) => e.type === "EBOOK")?.isbn ?? "";
   const barcodePb = isbnPb ? generateBarcodeSvg(isbnPb) : "";
   const map: Record<string, string> = {
     "[book_title]":            escapeHtml(book.title ?? ""),

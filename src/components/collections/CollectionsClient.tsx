@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Library, Plus, BookOpen, X, ChevronDown } from "lucide-react";
+import { Library, Plus, BookOpen, X, ChevronDown, Settings } from "lucide-react";
 
 interface BookSummary {
   id: string;
@@ -72,15 +72,22 @@ function CollectionCard({
   return (
     <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--card)]">
       <div className="flex items-center gap-3 mb-3">
-        <div className="h-10 w-10 rounded-lg bg-[var(--secondary)] flex items-center justify-center">
+        <div className="h-10 w-10 rounded-lg bg-[var(--secondary)] flex items-center justify-center flex-shrink-0">
           <Library className="h-5 w-5 text-[var(--muted-foreground)]" />
         </div>
-        <div>
-          <h3 className="font-semibold text-[var(--foreground)]">{collection.title}</h3>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-[var(--foreground)] truncate">{collection.title}</h3>
           <p className="text-xs text-[var(--muted-foreground)]">
             {collection.books.length} book{collection.books.length !== 1 ? "s" : ""}
           </p>
         </div>
+        <Link
+          href={`/collections/${collection.id}/settings`}
+          className="p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors flex-shrink-0"
+          title="Collection settings"
+        >
+          <Settings className="h-4 w-4" />
+        </Link>
       </div>
 
       {collection.description && (

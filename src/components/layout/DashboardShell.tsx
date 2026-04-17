@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronRight,
   PenLine,
+  Barcode,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/books", label: "Books", icon: BookOpen },
   { href: "/collections", label: "Collections", icon: Library },
+  { href: "/settings/isbns", label: "ISBNs", icon: Barcode },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -57,6 +59,8 @@ export function DashboardShell({
             const active =
               href === "/dashboard"
                 ? pathname === "/dashboard"
+                : href === "/settings"
+                ? pathname === "/settings"
                 : pathname.startsWith(href);
             return (
               <Link
