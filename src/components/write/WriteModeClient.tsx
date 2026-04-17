@@ -6,7 +6,7 @@ import {
   GripVertical, ChevronRight, ChevronDown, Trash2,
   Target, FileText, BookOpen, Sparkles, History, ListOrdered,
   Settings, Archive, BookMarked, Heart, Shield, List,
-  MessageSquare, User, Star, X,
+  MessageSquare, User, Star, X, Eye, EyeOff,
 } from "lucide-react";
 import Link from "next/link";
 import { cn, formatWordCount, estimateReadingTime } from "@/lib/utils";
@@ -198,6 +198,20 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
     }
   };
 
+  const toggleVisibility = async (chapterId: string, current: boolean) => {
+    await fetch(`/api/chapters/${chapterId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isVisible: !current }),
+    });
+    setBook((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((ch) =>
+        ch.id === chapterId ? { ...ch, isVisible: !current } : ch
+      ),
+    }));
+  };
+
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
     const items = Array.from(book.chapters);
@@ -331,14 +345,15 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
                                     "flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer group transition-colors",
                                     selectedChapterId === chapter.id
                                       ? "bg-indigo-600 text-white shadow-sm"
-                                      : "hover:bg-white/70 text-[var(--foreground)]"
+                                      : "hover:bg-white/70 text-[var(--foreground)]",
+                                    chapter.isVisible === false && selectedChapterId !== chapter.id && "opacity-40 line-through"
                                   )}
                                   onClick={() => setSelectedChapterId(chapter.id)}
                                 >
                                   <div {...drag.dragHandleProps} className="opacity-0 group-hover:opacity-40 cursor-grab flex-shrink-0">
                                     <GripVertical className="h-3 w-3" />
                                   </div>
-                                  <TypeIcon className={cn("h-3 w-3 flex-shrink-0", selectedChapterId === chapter.id ? "text-white/80" : cfg.color)} />
+                                  <TypeIcon className={cn("h-3 w-3 flex-shrink-0", selectedChapterId === chapter.id ? "text-white/80" : chapter.isVisible === false ? "text-gray-300" : cfg.color)} />
                                   {chapter.scenes.length > 0 && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); toggleExpand(chapter.id); }}
@@ -354,12 +369,23 @@ export function WriteModeClient({ book: initialBook, userId, readOnly = false }:
                                     {chapter.wordCount > 0 ? formatWordCount(chapter.wordCount) : ""}
                                   </span>
                                   {!readOnly && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); deleteChapter(chapter.id); }}
-                                      className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity flex-shrink-0"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
+                                    <>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); toggleVisibility(chapter.id, chapter.isVisible !== false); }}
+                                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity flex-shrink-0"
+                                        title={chapter.isVisible === false ? "Enable chapter" : "Disable chapter"}
+                                      >
+                                        {chapter.isVisible === false
+                                          ? <EyeOff className="h-3 w-3 text-red-400" />
+                                          : <Eye className="h-3 w-3" />}
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); deleteChapter(chapter.id); }}
+                                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity flex-shrink-0"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    </>
                                   )}
                                 </div>
 

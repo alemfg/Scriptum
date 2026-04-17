@@ -17,6 +17,31 @@ function tiptapJsonToHtml(jsonStr: string): string {
   }
 }
 
+const NUMBER_WORDS = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten",
+  "Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen","Twenty"];
+
+function substitutePlaceholders(html: string, book: BookFull, chapterIndex: number, chapterTitle: string): string {
+  const chNum = chapterIndex + 1;
+  const map: Record<string, string> = {
+    "[book_title]":            escapeHtml(book.title ?? ""),
+    "[author_name]":           escapeHtml(book.author ?? ""),
+    "[publisher]":             escapeHtml(book.author ?? ""),
+    "[year]":                  new Date().getFullYear().toString(),
+    "[language]":              book.language ?? "en",
+    "[genre]":                 escapeHtml(book.genre ?? ""),
+    "[chapter_title]":         escapeHtml(chapterTitle),
+    "[chapter_number]":        String(chNum),
+    "[chapter_number_words]":  chNum <= 20 ? NUMBER_WORDS[chNum] : String(chNum),
+    "[isbn_paperback]": "", "[isbn_hardcover]": "", "[isbn_ebook]": "",
+  };
+  return html.replace(/\[[a-zA-Z_][a-zA-Z0-9_]*(?::[^\]]+)?]/g, (match) => {
+    if (match in map) return map[match];
+    const colonIdx = match.indexOf(":");
+    if (colonIdx !== -1) return escapeHtml(match.slice(colonIdx + 1, -1));
+    return match;
+  });
+}
+
 function nodeToHtml(node: {
   type: string;
   text?: string;
@@ -73,14 +98,13 @@ export async function exportEpub(
     ? `<hr/><div style="text-align:center;"><img src="${formatSettings.sceneSeparatorSvg.replace(/"/g, "&quot;")}" alt="separator" style="max-height:24px;"/></div>`
     : undefined;
 
-  const chapters = book.chapters
-    .sort((a, b) => a.order - b.order)
-    .filter((ch) => ch.isVisible)
-    .map((ch) => {
-      let content = ch.content ? tiptapJsonToHtml(ch.content) : "<p></p>";
-      if (svgSepHtml) content = content.replace(/<hr\/>/g, svgSepHtml);
-      return { title: ch.title, content };
-    });
+  const visibleChapters = book.chapters.sort((a, b) => a.order - b.order).filter((ch) => ch.isVisible);
+  const chapters = visibleChapters.map((ch, idx) => {
+    let content = ch.content ? tiptapJsonToHtml(ch.content) : "<p></p>";
+    if (svgSepHtml) content = content.replace(/<hr\/>/g, svgSepHtml);
+    content = substitutePlaceholders(content, book, idx, ch.title);
+    return { title: ch.title, content };
+  });
 
   const options = {
     title: book.title,

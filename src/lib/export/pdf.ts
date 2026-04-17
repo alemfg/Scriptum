@@ -20,6 +20,41 @@ function tiptapJsonToHtml(jsonStr: string): string {
   }
 }
 
+const NUMBER_WORDS = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten",
+  "Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen","Twenty"];
+
+function substitutePlaceholders(
+  html: string,
+  book: BookFull,
+  chapterIndex: number,
+  chapterTitle: string
+): string {
+  const year = new Date().getFullYear().toString();
+  const chNum = chapterIndex + 1;
+  const map: Record<string, string> = {
+    "[book_title]":            escapeHtml(book.title ?? ""),
+    "[author_name]":           escapeHtml(book.author ?? ""),
+    "[publisher]":             escapeHtml(book.author ?? ""),
+    "[year]":                  year,
+    "[language]":              book.language ?? "en",
+    "[genre]":                 escapeHtml(book.genre ?? ""),
+    "[chapter_title]":         escapeHtml(chapterTitle),
+    "[chapter_number]":        String(chNum),
+    "[chapter_number_words]":  chNum <= 20 ? NUMBER_WORDS[chNum] : String(chNum),
+    "[isbn_paperback]":        "",
+    "[isbn_hardcover]":        "",
+    "[isbn_ebook]":            "",
+  };
+
+  return html.replace(/\[[a-zA-Z_][a-zA-Z0-9_]*(?::[^\]]+)?]/g, (match) => {
+    if (match in map) return map[match];
+    // [key:default] → use the default value after the colon
+    const colonIdx = match.indexOf(":");
+    if (colonIdx !== -1) return escapeHtml(match.slice(colonIdx + 1, -1));
+    return match; // leave unknown placeholders as-is
+  });
+}
+
 function nodeToHtml(node: {
   type: string;
   text?: string;
@@ -144,14 +179,14 @@ function buildHtml(book: BookFull, fmt?: FormatSettings | null): string {
     ? `<hr style="page-break-after:avoid;"/><div style="text-align:center;margin:0.5em 0;"><img src="${fmt.sceneSeparatorSvg.replace(/"/g, "&quot;")}" alt="separator" style="max-height:24px;max-width:120px;"/></div>`
     : undefined;
 
-  const chapters = book.chapters
-    .sort((a, b) => a.order - b.order)
-    .filter((ch) => ch.isVisible)
-    .map((ch) => {
+  const visibleChapters = book.chapters.sort((a, b) => a.order - b.order).filter((ch) => ch.isVisible);
+  const chapters = visibleChapters
+    .map((ch, idx) => {
       let html = ch.content ? tiptapJsonToHtml(ch.content) : "";
       if (svgSepHtml) {
         html = html.replace(/<hr style="page-break-after: avoid;"\/>/g, svgSepHtml);
       }
+      html = substitutePlaceholders(html, book, idx, ch.title);
       return `
         <div class="chapter chapter-start" id="ch-${ch.id}">
           ${fmt?.headerEnabled ? `<div class="page-header">${book.title}</div>` : ""}

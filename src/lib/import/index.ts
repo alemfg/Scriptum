@@ -165,16 +165,47 @@ function splitIntoChapters(
   let chapters: Array<{ title: string; content: string; order: number }> = [];
 
   if (format === "markdown") {
-    // Split on # headings
-    const parts = content.split(/^#{1,3}\s+/m);
-    const headings = content.match(/^#{1,3}\s+.+/gm) ?? [];
-    chapters = parts
-      .filter((p) => p.trim().length > 50)
-      .map((p, i) => ({
-        title: headings[i] ? headings[i].replace(/^#+\s+/, "") : `Chapter ${i + 1}`,
-        content: p.trim(),
-        order: i,
-      }));
+    // Strip markdown syntax to get plain heading text
+    const stripMarkdown = (s: string) =>
+      s.replace(/^#+\s+/, "").replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").trim();
+
+    // A line qualifies as a chapter heading if it is:
+    //   1. A standard markdown heading (# / ## / ###)
+    //   2. A **bold-only** line whose text contains chapter/part/act/scene/prologue/epilogue
+    //      OR is a Roman numeral or plain number
+    //   3. A plain text line starting with chapter/part/prologue/epilogue (case-insensitive)
+    const STRUCTURAL_WORDS = /\b(chapter|part|prologue|epilogue|act|scene|section|interlude)\b/i;
+    const ROMAN_OR_NUM     = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,2}|x{1,3}|\d+)$/i;
+
+    const isHeading = (line: string): boolean => {
+      const t = line.trim();
+      if (/^#{1,3}\s+/.test(t)) return true;
+      const boldOnly = t.match(/^\*\*(.+?)\*\*\s*$/);
+      if (boldOnly) {
+        const inner = boldOnly[1].trim();
+        return STRUCTURAL_WORDS.test(inner) || ROMAN_OR_NUM.test(inner);
+      }
+      return STRUCTURAL_WORDS.test(t.split(/[\s:–—]/)[0]);
+    };
+
+    const lines = content.split("\n");
+    const accumulated: { title: string; lines: string[] }[] = [];
+    let current: { title: string; lines: string[] } | null = null;
+
+    for (const line of lines) {
+      if (isHeading(line)) {
+        if (current) accumulated.push(current);
+        current = { title: stripMarkdown(line), lines: [] };
+      } else {
+        if (!current) current = { title: "Chapter 1", lines: [] };
+        current.lines.push(line);
+      }
+    }
+    if (current) accumulated.push(current);
+
+    chapters = accumulated
+      .map((ch, i) => ({ title: ch.title, content: ch.lines.join("\n").trim(), order: i }))
+      .filter((ch) => ch.content.length > 20 || ch.title !== "Chapter 1");
   } else if (format === "html") {
     // Split on h1/h2/h3 tags
     const parts = content.split(/<h[1-3][^>]*>/i);

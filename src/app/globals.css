@@ -79,6 +79,19 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 
+/* Placeholder tokens [like_this] highlighted in editor */
+.tiptap-placeholder-token {
+  color: #7c3aed;
+  background: #f3e8ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 4px;
+  padding: 0 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 /* Focus mode */
 .focus-mode .sidebar { display: none !important; }
 .focus-mode .toolbar { opacity: 0; transition: opacity 0.3s; }

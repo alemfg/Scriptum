@@ -13,6 +13,7 @@ import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import { cn } from "@/lib/utils";
 import { EditorToolbar } from "./EditorToolbar";
+import { PlaceholderHighlight } from "./PlaceholderHighlight";
 
 interface TiptapEditorProps {
   chapterId: string;
@@ -60,6 +61,7 @@ export function TiptapEditor({
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Image.configure({ inline: false }),
       Link.configure({ openOnClick: false }),
+      PlaceholderHighlight,
     ],
     content: parseInitialContent(initialContent),
     editorProps: {
